@@ -1,111 +1,111 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 import { Title } from './components/Title'
-import { TodoInput } from './components/TodoInput';
-import { TodoList } from './components/TodoList';
-import './App.css';
+import { TodoInput } from './components/TodoInput'
+import { TodoList } from './components/TodoList'
+import './App.css'
+
+const domain = 'http://127.0.0.1:8000/api/tasks'
 
 function App() {
-  const [todos, setTodos] = useState([
-    {
-      id: 1,
-      title: 'Limpiar la casa',
-      completed: false,
-    },
-    {
-      id: 2,
-      title: 'Pasear al perro',
-     completed: false,
-    },
-    {
-      id: 3,
-      title: 'Lavar Platos',
-      completed: false,
-    }
-  ])
+	const [todos, setTodos] = useState([])
+	const [activeFilter, setActiveFilter] = useState('all')
 
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [filteredTodos, setFilteredTodos] = useState(todos);
+	const addTodo = async (title) => {
+		await fetch(`${domain}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ title }),
+		})
+		fetchTasksAndFilter()
+	}
 
-  const addTodo = (title) => {
-    const lastId = todos.length > 0 ? todos[todos.length - 1].id : 1;
+	const handleSetComplete = async (id) => {
+		await fetch(`${domain}/${id}`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		})
+		fetchTasksAndFilter()
+	}
 
-    const newTodo = {
-      id: lastId + 1,
-      title,
-      completed: false
-    }
+	const handleClearComplete = async () => {
+		const completedList = todos
+			.filter((todo) => todo.completed === 1)
+			.map((todo) => todo.id)
+		console.log(completedList)
+		await fetch(`${domain}`, {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ completedList }),
+		})
+		fetchTasksAndFilter()
+	}
 
-    const todoList = [...todos]
-    todoList.push(newTodo);
+	const handleDelete = async (id) => {
+		await fetch(`${domain}/${id}`, {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		})
+		fetchTasksAndFilter()
+	}
 
-    setTodos(todoList);
-  }
+	const showAllTodos = () => {
+		setActiveFilter('all')
+	}
 
-  const handleSetComplete = (id) => {
+	const showActiveTodos = () => {
+		setActiveFilter('active')
+	}
 
-    const updatedList = todos.map(todo => {
-      if (todo.id === id) {
-        return { ...todo, completed: !todo.completed}
-      }
-      return todo;
-    })
+	const showCompletedTodos = () => {
+		setActiveFilter('completed')
+	}
 
-    setTodos(updatedList);
-  } 
+	const fetchTasksAndFilter = async () => {
+		const res = await fetch(`${domain}`, {
+			method: 'GET',
+		})
+		const data = await res.json()
+		if (activeFilter === 'all') {
+			setTodos(data)
+		} else if (activeFilter === 'active') {
+			const activeTodos = data.filter((data) => data.completed === 0)
+			setTodos(activeTodos)
+		} else if (activeFilter === 'completed') {
+			const completedTodos = data.filter((data) => data.completed === 1)
+			setTodos(completedTodos)
+		}
+	}
 
-  const handleClearComplete = () => {
-    const updatedList = todos.filter(todo => !todo.completed);
-    setTodos(updatedList);
-  };
+	useEffect(() => {
+		fetchTasksAndFilter()
+	}, [activeFilter])
 
-  const handleDelete = (id) => {
-    const updatedList = todos.filter(todo => todo.id !== id);
-    setTodos(updatedList);
-  }
-
-  const showAllTodos = () => {
-    setActiveFilter('all')
-  }
-
-  const showActiveTodos = () => {
-    setActiveFilter('active')
-  }
-
-  const showCompletedTodos = () => {
-    setActiveFilter('completed')
-  }
-  
-  useEffect(() => {
-    if (activeFilter === 'all') {
-      setFilteredTodos(todos);
-    } else if (activeFilter === 'active') {
-        const activeTodos = todos.filter(todo => todo.completed === false);
-        setFilteredTodos(activeTodos);
-    } else if (activeFilter === 'completed') {
-        const completedTodos = todos.filter(todo => todo.completed === true);
-        setFilteredTodos(completedTodos);
-    }
-    
-  },[activeFilter, todos]);
-
-  return (
-    <div className='bg-gray-900 min-h-screen font-inter h-full text-gray-100 flex items-center justify-center py-20 px-5'>
-      <div className='container flex flex-col max-w-xl'>
-        <Title />
-        <TodoInput addTodo={addTodo} />
-        <TodoList
-          activeFilter={activeFilter}
-          todos={filteredTodos}
-          showAllTodos={showAllTodos}
-          showActiveTodos={showActiveTodos}
-          showCompletedTodos={showCompletedTodos}
-          handleSetComplete={handleSetComplete}
-          handleDelete={handleDelete}
-          handleClearComplete={handleClearComplete} />
-      </div>
-        
-    </div>
-  );
+	return (
+		<div className='bg-gray-900 min-h-screen font-inter h-full text-gray-100 flex items-center justify-center py-20 px-5'>
+			<div className='container flex flex-col max-w-xl'>
+				<Title />
+				<TodoInput addTodo={addTodo} />
+				<TodoList
+					activeFilter={activeFilter}
+					todos={todos}
+					showAllTodos={showAllTodos}
+					showActiveTodos={showActiveTodos}
+					showCompletedTodos={showCompletedTodos}
+					handleSetComplete={handleSetComplete}
+					handleDelete={handleDelete}
+					handleClearComplete={handleClearComplete}
+				/>
+			</div>
+		</div>
+	)
 }
 
-export default App;
+export default App
